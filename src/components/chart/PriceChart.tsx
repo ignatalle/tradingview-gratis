@@ -133,6 +133,7 @@ export function PriceChart({ symbol, timeframe }: Props) {
   const [lastValues, setLastValues] = useState<LastValues>({});
   const [paneOffsets, setPaneOffsets] = useState<PaneOffset[]>([]);
   const [measure, setMeasure] = useState<MeasureState>(INITIAL_MEASURE);
+  const [saldoTestnet, setSaldoTestnet] = useState<{ balance: string; asset: string } | null>(null);
   const [renderTick, setRenderTick] = useState(0);
   const measureRef = useRef(measure);
   measureRef.current = measure;
@@ -152,6 +153,22 @@ export function PriceChart({ symbol, timeframe }: Props) {
   }
 
   // Create chart once
+  useEffect(() => {
+    const obtenerSaldo = async () => {
+      try {
+        const res = await fetch('/api/balance');
+        const data = await res.json();
+        setSaldoTestnet(data);
+      } catch (e) {
+        console.error("Error obteniendo saldo:", e);
+      }
+    };
+
+    obtenerSaldo();
+    const intervalo = setInterval(obtenerSaldo, 5000); // Actualiza cada 5 segundos
+    return () => clearInterval(intervalo);
+  }, []);
+
   useEffect(() => {
     if (!containerRef.current) return;
 
@@ -868,6 +885,15 @@ export function PriceChart({ symbol, timeframe }: Props) {
             <span className="text-xs text-tv-text-muted">Cargando…</span>
           )}
         </div>
+
+        {/* Fila de Saldo Testnet */}
+        {saldoTestnet && (
+          <div className="flex items-center gap-1.5 text-[11px] text-tv-text-muted mt-0.5 bg-[#1e222d] px-2 py-0.5 rounded border border-[#2a2e39] w-fit">
+            <span className="inline-block w-2 h-2 rounded-full bg-yellow-500 animate-pulse"></span>
+            <span>Demo Wallet:</span>
+            <span className="font-semibold text-tv-text tabular-nums">{saldoTestnet.balance} {saldoTestnet.asset}</span>
+          </div>
+        )}
 
         {/* Indicator pills for the main pane (fixed position below price) */}
         <div className="mt-1 flex flex-col items-start gap-1">
