@@ -134,6 +134,7 @@ export function PriceChart({ symbol, timeframe }: Props) {
   const [paneOffsets, setPaneOffsets] = useState<PaneOffset[]>([]);
   const [measure, setMeasure] = useState<MeasureState>(INITIAL_MEASURE);
   const [saldoTestnet, setSaldoTestnet] = useState<{ balance: string; asset: string } | null>(null);
+  const [operaciones, setOperaciones] = useState<any[]>([]);
   const [renderTick, setRenderTick] = useState(0);
   const measureRef = useRef(measure);
   measureRef.current = measure;
@@ -166,6 +167,38 @@ export function PriceChart({ symbol, timeframe }: Props) {
 
     obtenerSaldo();
     const intervalo = setInterval(obtenerSaldo, 5000); // Actualiza cada 5 segundos
+    return () => clearInterval(intervalo);
+  }, []);
+
+  useEffect(() => {
+    const obtenerOperaciones = async () => {
+      try {
+        const res = await fetch('/api/operaciones');
+        const data = await res.json();
+        setOperaciones(data);
+        
+        if (candleSeriesRef.current && data.length > 0) {
+          const markers = data.map((op: any) => ({
+            time: op.time as UTCTimestamp,
+            position: op.accion === "COMPRA" ? 'belowBar' : 'aboveBar',
+            color: op.accion === "COMPRA" ? '#26a69a' : '#ef5350',
+            shape: op.accion === "COMPRA" ? 'arrowUp' : 'arrowDown',
+            text: op.accion,
+            size: 2,
+          }));
+          
+          // Lightweight Charts requiere que los marcadores estén ordenados por tiempo
+          markers.sort((a: any, b: any) => a.time - b.time);
+          
+          candleSeriesRef.current.setMarkers(markers);
+        }
+      } catch (e) {
+        console.error("Error obteniendo operaciones:", e);
+      }
+    };
+
+    obtenerOperaciones();
+    const intervalo = setInterval(obtenerOperaciones, 3000); // Actualiza cada 3 segundos
     return () => clearInterval(intervalo);
   }, []);
 
@@ -677,34 +710,6 @@ export function PriceChart({ symbol, timeframe }: Props) {
         chartRef.current?.timeScale().fitContent();
         requestAnimationFrame(() => recomputePaneOffsets());
 
-        // 👇 CÓDIGO NUEVO A PEGAR DESDE AQUÍ 👇
-        
-        // Esperamos un segundito a que carguen las velas y ponemos las marcas de prueba
-        setTimeout(() => {
-          if (candleSeriesRef.current && klines.length > 5) {
-            candleSeriesRef.current.setMarkers([
-              {
-                time: klines[klines.length - 15].time as UTCTimestamp, // Hace 15 velas
-                position: 'belowBar',
-                color: '#26a69a', // Verde TV
-                shape: 'arrowUp',
-                text: 'COMPRA',
-                size: 2,
-              },
-              {
-                time: klines[klines.length - 5].time as UTCTimestamp, // Hace 5 velas
-                position: 'aboveBar',
-                color: '#ef5350', // Rojo TV
-                shape: 'arrowDown',
-                text: 'VENTA',
-                size: 2,
-              }
-            ]);
-          }
-        }, 500);
-
-        // 👆 HASTA AQUÍ 👆
-
         if (klines.length > 0) {
           const last = klines[klines.length - 1];
           const prev = klines[klines.length - 2] ?? last;
@@ -886,12 +891,15 @@ export function PriceChart({ symbol, timeframe }: Props) {
           )}
         </div>
 
-        {/* Fila de Saldo Testnet */}
+        {/* Fila de Saldo Testnet Premium */}
         {saldoTestnet && (
-          <div className="flex items-center gap-1.5 text-[11px] text-tv-text-muted mt-0.5 bg-[#1e222d] px-2 py-0.5 rounded border border-[#2a2e39] w-fit">
-            <span className="inline-block w-2 h-2 rounded-full bg-yellow-500 animate-pulse"></span>
-            <span>Demo Wallet:</span>
-            <span className="font-semibold text-tv-text tabular-nums">{saldoTestnet.balance} {saldoTestnet.asset}</span>
+          <div className="mt-1.5 flex w-fit items-center gap-2 rounded-full border border-white/10 bg-[#1e222d]/80 px-3 py-1.5 text-[11px] backdrop-blur-md shadow-lg shadow-black/20 transition-all hover:bg-[#1e222d] hover:border-white/20 pointer-events-auto">
+            <span className="relative flex h-2 w-2">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-tv-green opacity-75"></span>
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-tv-green"></span>
+            </span>
+            <span className="text-white/60 font-medium tracking-wide">Demo Wallet</span>
+            <span className="font-bold text-white tabular-nums tracking-tight">{saldoTestnet.balance} <span className="text-white/50 font-normal">{saldoTestnet.asset}</span></span>
           </div>
         )}
 
