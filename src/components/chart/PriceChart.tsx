@@ -660,6 +660,34 @@ export function PriceChart({ symbol, timeframe }: Props) {
         chartRef.current?.timeScale().fitContent();
         requestAnimationFrame(() => recomputePaneOffsets());
 
+        // 👇 CÓDIGO NUEVO A PEGAR DESDE AQUÍ 👇
+        
+        // Esperamos un segundito a que carguen las velas y ponemos las marcas de prueba
+        setTimeout(() => {
+          if (candleSeriesRef.current && klines.length > 5) {
+            candleSeriesRef.current.setMarkers([
+              {
+                time: klines[klines.length - 15].time as UTCTimestamp, // Hace 15 velas
+                position: 'belowBar',
+                color: '#26a69a', // Verde TV
+                shape: 'arrowUp',
+                text: 'COMPRA',
+                size: 2,
+              },
+              {
+                time: klines[klines.length - 5].time as UTCTimestamp, // Hace 5 velas
+                position: 'aboveBar',
+                color: '#ef5350', // Rojo TV
+                shape: 'arrowDown',
+                text: 'VENTA',
+                size: 2,
+              }
+            ]);
+          }
+        }, 500);
+
+        // 👆 HASTA AQUÍ 👆
+
         if (klines.length > 0) {
           const last = klines[klines.length - 1];
           const prev = klines[klines.length - 2] ?? last;
