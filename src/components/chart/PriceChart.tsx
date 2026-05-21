@@ -96,6 +96,7 @@ export function PriceChart({ symbol, timeframe }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const seriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
+  const candlestickSeriesRef = useRef<any>(null);
   const volumeSeriesRef = useRef<ISeriesApi<"Histogram"> | null>(null);
   const ema20Ref = useRef<ISeriesApi<"Line"> | null>(null);
   const ema50Ref = useRef<ISeriesApi<"Line"> | null>(null);
@@ -230,10 +231,10 @@ export function PriceChart({ symbol, timeframe }: Props) {
           // Lightweight Charts requiere que los marcadores estén ordenados por tiempo
           markers.sort((a: any, b: any) => a.time - b.time);
           
-          if (seriesRef.current && typeof seriesRef.current.setMarkers === 'function') {
-            seriesRef.current.setMarkers(markers);
-          } else if (seriesRef.current) {
-            (seriesRef.current as any).setMarkers(markers);
+          if (candlestickSeriesRef.current && typeof candlestickSeriesRef.current.setMarkers === 'function') {
+              candlestickSeriesRef.current.setMarkers(markers);
+          } else {
+              console.error("Error: candlestickSeriesRef.current no es una serie válida.");
           }
         }
       } catch (e) {
@@ -292,6 +293,7 @@ export function PriceChart({ symbol, timeframe }: Props) {
       priceLineStyle: 2,
     });
     seriesRef.current = series;
+    candlestickSeriesRef.current = series;
 
     ema20Ref.current = chart.addSeries(LineSeries, {
       color: INDICATOR_COLORS.ema20,
