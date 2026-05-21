@@ -190,7 +190,7 @@ export function PriceChart({ symbol, timeframe }: Props) {
           // Lightweight Charts requiere que los marcadores estén ordenados por tiempo
           markers.sort((a: any, b: any) => a.time - b.time);
           
-          candleSeriesRef.current.setMarkers(markers);
+          (candleSeriesRef.current as any).setMarkers(markers);
         }
       } catch (e) {
         console.error("Error obteniendo operaciones:", e);
