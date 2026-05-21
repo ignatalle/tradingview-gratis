@@ -288,7 +288,7 @@ export function PriceChart({ symbol, timeframe }: Props) {
     });
 
     // PANE 0 — Candles + EMAs
-    const series = chart.addCandlestickSeries({
+    const series = chart.addSeries(CandlestickSeries, {
       upColor: TV_COLORS.green,
       downColor: TV_COLORS.red,
       borderUpColor: TV_COLORS.green,
