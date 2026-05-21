@@ -213,18 +213,8 @@ export function PriceChart({ symbol, timeframe }: Props) {
             let matchedTime = op.time as UTCTimestamp;
             
             if (candles && candles.length > 0) {
-               // Buscar la vela más cercana en el tiempo
-               let closest = candles[0];
-               let minDiff = Math.abs(candles[0].time - op.time);
-               
-               for(let i = 1; i < candles.length; i++) {
-                   const diff = Math.abs(candles[i].time - op.time);
-                   if (diff < minDiff) {
-                       minDiff = diff;
-                       closest = candles[i];
-                   }
-               }
-               matchedTime = closest.time as UTCTimestamp;
+               // Asignar exactamente el mismo time de la última vela disponible
+               matchedTime = candles[candles.length - 1].time as UTCTimestamp;
             }
 
             return {
