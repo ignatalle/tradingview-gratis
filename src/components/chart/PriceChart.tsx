@@ -207,14 +207,35 @@ export function PriceChart({ symbol, timeframe }: Props) {
         setOperaciones(data);
         
         if (candleSeriesRef.current && data.length > 0) {
-          const markers = data.map((op: any) => ({
-            time: op.time as UTCTimestamp,
-            position: op.accion === "COMPRA" ? 'belowBar' : 'aboveBar',
-            color: op.accion === "COMPRA" ? '#26a69a' : '#ef5350',
-            shape: op.accion === "COMPRA" ? 'arrowUp' : 'arrowDown',
-            text: op.accion,
-            size: 2,
-          }));
+          const candles = candlesRef.current;
+          
+          const markers = data.map((op: any) => {
+            let matchedTime = op.time as UTCTimestamp;
+            
+            if (candles && candles.length > 0) {
+               // Buscar la vela más cercana en el tiempo
+               let closest = candles[0];
+               let minDiff = Math.abs(candles[0].time - op.time);
+               
+               for(let i = 1; i < candles.length; i++) {
+                   const diff = Math.abs(candles[i].time - op.time);
+                   if (diff < minDiff) {
+                       minDiff = diff;
+                       closest = candles[i];
+                   }
+               }
+               matchedTime = closest.time as UTCTimestamp;
+            }
+
+            return {
+              time: matchedTime,
+              position: op.accion === "COMPRA" ? 'belowBar' : 'aboveBar',
+              color: op.accion === "COMPRA" ? '#26a69a' : '#ef5350',
+              shape: op.accion === "COMPRA" ? 'arrowUp' : 'arrowDown',
+              text: op.accion,
+              size: 2,
+            };
+          });
           
           // Lightweight Charts requiere que los marcadores estén ordenados por tiempo
           markers.sort((a: any, b: any) => a.time - b.time);
