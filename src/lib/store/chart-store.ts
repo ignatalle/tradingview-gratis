@@ -79,6 +79,7 @@ interface ChartState {
   symbolDialogOpen: boolean;
   /** Which indicator's settings dialog is open (null = closed) */
   settingsTarget: IndicatorKey | null;
+  showWallet: boolean;
 
   // Actions
   setSymbol: (s: string) => void;
@@ -94,6 +95,7 @@ interface ChartState {
   clearPriceLines: (symbol?: string) => void;
   setSymbolDialogOpen: (v: boolean) => void;
   setSettingsTarget: (k: IndicatorKey | null) => void;
+  setShowWallet: (b: boolean) => void;
 }
 
 export const useChartStore = create<ChartState>()(
@@ -123,6 +125,7 @@ export const useChartStore = create<ChartState>()(
       priceLines: [],
       symbolDialogOpen: false,
       settingsTarget: null,
+      showWallet: true,
 
       setSymbol: (symbol) => set({ symbol }),
       setTimeframe: (timeframe) => set({ timeframe }),
@@ -176,6 +179,7 @@ export const useChartStore = create<ChartState>()(
         })),
       setSymbolDialogOpen: (symbolDialogOpen) => set({ symbolDialogOpen }),
       setSettingsTarget: (settingsTarget) => set({ settingsTarget }),
+      setShowWallet: (showWallet) => set({ showWallet }),
     }),
     {
       name: "tv-gratis-chart-state",

@@ -24,6 +24,7 @@ import {
 import { formatPrice, formatVolume } from "@/lib/format";
 import { IndicatorPill } from "./IndicatorPill";
 import { MeasureOverlay } from "./MeasureOverlay";
+import { X } from "lucide-react";
 
 interface MeasurePoint {
   time: number;
@@ -135,9 +136,37 @@ export function PriceChart({ symbol, timeframe }: Props) {
   const [measure, setMeasure] = useState<MeasureState>(INITIAL_MEASURE);
   const [saldoTestnet, setSaldoTestnet] = useState<{ balance: string; asset: string } | null>(null);
   const [operaciones, setOperaciones] = useState<any[]>([]);
+  
+  const showWallet = useChartStore((s) => s.showWallet);
+  const setShowWallet = useChartStore((s) => s.setShowWallet);
+  const [walletPos, setWalletPos] = useState({ x: 24, y: 72 });
+  const [isDraggingWallet, setIsDraggingWallet] = useState(false);
+  const dragOffset = useRef({ x: 0, y: 0 });
+  
   const [renderTick, setRenderTick] = useState(0);
   const measureRef = useRef(measure);
   measureRef.current = measure;
+
+  // Dragging logic for wallet
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isDraggingWallet) return;
+      setWalletPos({
+        x: Math.max(0, e.clientX - dragOffset.current.x),
+        y: Math.max(0, e.clientY - dragOffset.current.y),
+      });
+    };
+    const handleMouseUp = () => setIsDraggingWallet(false);
+
+    if (isDraggingWallet) {
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+    }
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDraggingWallet]);
 
   // Helper — compute pane top offsets from chart layout
   function recomputePaneOffsets() {
@@ -892,14 +921,31 @@ export function PriceChart({ symbol, timeframe }: Props) {
         </div>
 
         {/* Fila de Saldo Testnet Premium */}
-        {saldoTestnet && (
-          <div className="mt-1.5 flex w-fit items-center gap-2 rounded-full border border-white/10 bg-[#1e222d]/80 px-3 py-1.5 text-[11px] backdrop-blur-md shadow-lg shadow-black/20 transition-all hover:bg-[#1e222d] hover:border-white/20 pointer-events-auto">
+        {showWallet && saldoTestnet && (
+          <div 
+            style={{ position: 'fixed', top: walletPos.y, left: walletPos.x, zIndex: 50, cursor: isDraggingWallet ? 'grabbing' : 'grab' }}
+            onMouseDown={(e) => {
+              setIsDraggingWallet(true);
+              dragOffset.current = {
+                x: e.clientX - walletPos.x,
+                y: e.clientY - walletPos.y,
+              };
+            }}
+            className="flex items-center gap-3 rounded-full border border-white/10 bg-[#1e222d]/90 px-4 py-2 text-[12px] backdrop-blur-md shadow-2xl shadow-black/40 transition-colors hover:border-white/20 select-none pointer-events-auto"
+          >
             <span className="relative flex h-2 w-2">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-tv-green opacity-75"></span>
               <span className="relative inline-flex h-2 w-2 rounded-full bg-tv-green"></span>
             </span>
             <span className="text-white/60 font-medium tracking-wide">Demo Wallet</span>
             <span className="font-bold text-white tabular-nums tracking-tight">{saldoTestnet.balance} <span className="text-white/50 font-normal">{saldoTestnet.asset}</span></span>
+            
+            <button 
+              onClick={(e) => { e.stopPropagation(); setShowWallet(false); }}
+              className="ml-1 rounded-full p-1 hover:bg-white/10 transition-colors text-white/50 hover:text-white"
+            >
+              <X className="h-3 w-3" />
+            </button>
           </div>
         )}
 

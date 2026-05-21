@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 
+export const dynamic = 'force-dynamic';
+
 // Guardamos el saldo en memoria temporal del servidor
 let saldoActual = { balance: "10000.00", asset: "USDT" };
 

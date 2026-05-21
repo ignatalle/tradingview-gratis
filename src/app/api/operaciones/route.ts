@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 
+export const dynamic = 'force-dynamic';
+
 // Memoria temporal: guardará las últimas 50 operaciones
 let operaciones: Array<{
   accion: string;
