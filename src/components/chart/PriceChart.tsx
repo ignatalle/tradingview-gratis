@@ -95,7 +95,7 @@ interface PaneOffset {
 export function PriceChart({ symbol, timeframe }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
-  const candleSeriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
+  const seriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
   const volumeSeriesRef = useRef<ISeriesApi<"Histogram"> | null>(null);
   const ema20Ref = useRef<ISeriesApi<"Line"> | null>(null);
   const ema50Ref = useRef<ISeriesApi<"Line"> | null>(null);
@@ -206,7 +206,7 @@ export function PriceChart({ symbol, timeframe }: Props) {
         const data = await res.json();
         setOperaciones(data);
         
-        if (candleSeriesRef.current && data.length > 0) {
+        if (seriesRef.current && data.length > 0) {
           const candles = candlesRef.current;
           
           const markers = data.map((op: any) => {
@@ -230,7 +230,11 @@ export function PriceChart({ symbol, timeframe }: Props) {
           // Lightweight Charts requiere que los marcadores estén ordenados por tiempo
           markers.sort((a: any, b: any) => a.time - b.time);
           
-          (candleSeriesRef.current as any).setMarkers(markers);
+          if (seriesRef.current && typeof seriesRef.current.setMarkers === 'function') {
+            seriesRef.current.setMarkers(markers);
+          } else if (seriesRef.current) {
+            (seriesRef.current as any).setMarkers(markers);
+          }
         }
       } catch (e) {
         console.error("Error obteniendo operaciones:", e);
@@ -277,7 +281,7 @@ export function PriceChart({ symbol, timeframe }: Props) {
     });
 
     // PANE 0 — Candles + EMAs
-    candleSeriesRef.current = chart.addSeries(CandlestickSeries, {
+    const series = chart.addCandlestickSeries({
       upColor: TV_COLORS.green,
       downColor: TV_COLORS.red,
       borderUpColor: TV_COLORS.green,
@@ -287,6 +291,7 @@ export function PriceChart({ symbol, timeframe }: Props) {
       priceLineColor: TV_COLORS.textMuted,
       priceLineStyle: 2,
     });
+    seriesRef.current = series;
 
     ema20Ref.current = chart.addSeries(LineSeries, {
       color: INDICATOR_COLORS.ema20,
@@ -311,8 +316,8 @@ export function PriceChart({ symbol, timeframe }: Props) {
 
     // Click handler — add horizontal price line when hline tool is active
     chart.subscribeClick((param) => {
-      if (!param.point || !candleSeriesRef.current) return;
-      const price = candleSeriesRef.current.coordinateToPrice(param.point.y);
+      if (!param.point || !seriesRef.current) return;
+      const price = seriesRef.current.coordinateToPrice(param.point.y);
       if (price === null || !isFinite(price)) return;
 
       if (toolRef.current === "hline") {
@@ -353,9 +358,14 @@ export function PriceChart({ symbol, timeframe }: Props) {
         measureRef.current.phase === "placing" &&
         param.point &&
         param.time &&
-        candleSeriesRef.current
+        seriesRef.current
       ) {
-        const price = candleSeriesRef.current.coordinateToPrice(param.point.y);
+        if (!seriesRef.current || !volumeSeriesRef.current) return;
+        
+        // PANE 0 (Candles) mapping
+        const yTop0 = seriesRef.current.coordinateToPrice(0) ?? 0;
+        const yBottom0 = seriesRef.current.coordinateToPrice(paneOffsets[0].height) ?? 0;
+        const price = seriesRef.current.coordinateToPrice(param.point.y);
         if (price !== null && isFinite(price)) {
           const time = Number(param.time);
           setMeasure((prev) =>
@@ -364,11 +374,11 @@ export function PriceChart({ symbol, timeframe }: Props) {
         }
       }
 
-      if (!param.time || !candleSeriesRef.current) {
+      if (!param.time || !seriesRef.current) {
         setHover(null);
         return;
       }
-      const data = param.seriesData.get(candleSeriesRef.current);
+      const data = param.seriesData.get(seriesRef.current);
       const vol = volumeSeriesRef.current
         ? param.seriesData.get(volumeSeriesRef.current)
         : null;
@@ -406,7 +416,7 @@ export function PriceChart({ symbol, timeframe }: Props) {
       ro.disconnect();
       chart.remove();
       chartRef.current = null;
-      candleSeriesRef.current = null;
+      seriesRef.current = null;
       volumeSeriesRef.current = null;
       priceLinesMapRef.current.clear();
       ema20Ref.current = null;
@@ -588,7 +598,7 @@ export function PriceChart({ symbol, timeframe }: Props) {
 
   // Sync price lines from store to the candle series
   useEffect(() => {
-    const series = candleSeriesRef.current;
+    const series = seriesRef.current;
     if (!series) return;
     const map = priceLinesMapRef.current;
     const linesForThisSymbol = priceLines.filter((p) => p.symbol === symbol);
@@ -724,8 +734,8 @@ export function PriceChart({ symbol, timeframe }: Props) {
         const klines = await fetchKlines(symbol, timeframe, 1000);
         if (cancelled) return;
         candlesRef.current = klines;
-        if (candleSeriesRef.current) {
-          candleSeriesRef.current.setData(
+        if (seriesRef.current) {
+          seriesRef.current.setData(
             klines.map((k) => ({
               time: k.time as UTCTimestamp,
               open: k.open,
@@ -764,7 +774,7 @@ export function PriceChart({ symbol, timeframe }: Props) {
           symbol,
           interval: timeframe,
           onCandle: (k) => {
-            if (!candleSeriesRef.current) return;
+            if (!seriesRef.current) return;
             const arr = candlesRef.current;
             const lastCandle = arr[arr.length - 1];
             if (lastCandle && lastCandle.time === k.time) {
@@ -775,7 +785,7 @@ export function PriceChart({ symbol, timeframe }: Props) {
             } else {
               return;
             }
-            candleSeriesRef.current.update({
+            seriesRef.current.update({
               time: k.time as UTCTimestamp,
               open: k.open,
               high: k.high,
@@ -829,13 +839,13 @@ export function PriceChart({ symbol, timeframe }: Props) {
     measure.a &&
     measure.b &&
     chartRef.current &&
-    candleSeriesRef.current
+    seriesRef.current
   ) {
     const ts = chartRef.current.timeScale();
     const aX = ts.timeToCoordinate(measure.a.time as UTCTimestamp);
     const bX = ts.timeToCoordinate(measure.b.time as UTCTimestamp);
-    const aY = candleSeriesRef.current.priceToCoordinate(measure.a.price);
-    const bY = candleSeriesRef.current.priceToCoordinate(measure.b.price);
+    const aY = seriesRef.current.priceToCoordinate(measure.a.price);
+    const bY = seriesRef.current.priceToCoordinate(measure.b.price);
 
     if (aX !== null && bX !== null && aY !== null && bY !== null) {
       const priceDiff = measure.b.price - measure.a.price;
