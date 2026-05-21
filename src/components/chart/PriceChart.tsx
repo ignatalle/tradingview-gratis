@@ -11,6 +11,7 @@ import {
   type ISeriesApi,
   type IPriceLine,
   type UTCTimestamp,
+  createSeriesMarkers,
 } from "lightweight-charts";
 import { fetchKlines } from "@/lib/binance/rest";
 import { getBinanceWS } from "@/lib/binance/ws";
@@ -97,6 +98,7 @@ export function PriceChart({ symbol, timeframe }: Props) {
   const chartRef = useRef<IChartApi | null>(null);
   const seriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
   const candlestickSeriesRef = useRef<any>(null);
+  const markersRef = useRef<any>(null);
   const volumeSeriesRef = useRef<ISeriesApi<"Histogram"> | null>(null);
   const ema20Ref = useRef<ISeriesApi<"Line"> | null>(null);
   const ema50Ref = useRef<ISeriesApi<"Line"> | null>(null);
@@ -231,8 +233,12 @@ export function PriceChart({ symbol, timeframe }: Props) {
           // Lightweight Charts requiere que los marcadores estén ordenados por tiempo
           markers.sort((a: any, b: any) => a.time - b.time);
           
-          if (candlestickSeriesRef.current && typeof candlestickSeriesRef.current.setMarkers === 'function') {
-              candlestickSeriesRef.current.setMarkers(markers);
+          if (candlestickSeriesRef.current) {
+            if (!markersRef.current) {
+              markersRef.current = createSeriesMarkers(candlestickSeriesRef.current, markers);
+            } else {
+              markersRef.current.setMarkers(markers);
+            }
           } else {
               console.error("Error: candlestickSeriesRef.current no es una serie válida.");
           }
