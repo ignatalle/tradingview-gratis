@@ -19,6 +19,7 @@ interface WalletState {
 export default function AnalyticsDashboard() {
   const [operaciones, setOperaciones] = useState<Operacion[]>([]);
   const [wallet, setWallet] = useState<WalletState>({ asset: 'USDT', balance: 10000 });
+  const [isMounted, setIsMounted] = useState(false);
   const CAPITAL_INICIAL = 10000;
 
   // Polling dinámico cada 3 segundos para mantener la interfaz viva
@@ -44,8 +45,13 @@ export default function AnalyticsDashboard() {
 
     fetchData();
     const interval = setInterval(fetchData, 3000);
+    setIsMounted(true);
     return () => clearInterval(interval);
   }, []);
+
+  if (!isMounted) {
+    return <div className="w-full bg-[#0c0d14] px-6 py-8 min-h-[400px]"></div>;
+  }
 
   // CÁLCULOS MATEMÁTICOS DEL PANEL
   const balanceActualUSDT = wallet.asset === 'USDT' 
